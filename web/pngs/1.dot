@@ -1,0 +1,44 @@
+digraph G {
+    rankdir=LR;
+  subgraph cluster_other_graph{
+    style = rounded;
+    label = "other_graph";
+    other_graph__START__[color=black fillcolor=deepskyblue style=filled shape=Msquare label="START"];
+    other_graph__STOP__[color=black fillcolor=deepskyblue style=filled shape=Msquare label="STOP"];
+    other_graph_subgraph_invoke_cb1 [label="subgraph_cb1.dag::default_graph" shape=box3d, color=blue fillcolor=aquamarine style=filled];
+    other_graph_subgraph_invoke_cb2 [label="subgraph_cb2.dag::default_graph" shape=box3d, color=blue fillcolor=aquamarine style=filled];
+    other_graph_subgraph_invoke_cb3 [label="subgraph_cb3.dag::default_graph" shape=box3d, color=blue fillcolor=aquamarine style=filled];
+    other_graph_recmd_merge [label="recmd_merge" color=black fillcolor=linen style=filled];
+    other_graph_with_exp_1000 [label="with_exp_1000" shape=diamond color=black fillcolor=aquamarine style=filled];
+    other_graph_with_exp_1001 [label="with_exp_1001" shape=diamond color=black fillcolor=aquamarine style=filled];
+    other_graph__START__ -> other_graph_subgraph_invoke_cb1;
+    other_graph__START__ -> other_graph_subgraph_invoke_cb2;
+    other_graph__START__ -> other_graph_subgraph_invoke_cb3;
+    other_graph_recmd_merge -> other_graph__STOP__;
+    other_graph_subgraph_invoke_cb1 -> other_graph_recmd_merge [style=bold label="all"];
+    other_graph_subgraph_invoke_cb2 -> other_graph_recmd_merge [style=bold label="all"];
+    other_graph_subgraph_invoke_cb3 -> other_graph_recmd_merge [style=bold label="all"];
+};
+  subgraph cluster_default_graph{
+    style = rounded;
+    label = "default_graph";
+    default_graph__START__[color=black fillcolor=deepskyblue style=filled shape=Msquare label="START"];
+    default_graph__STOP__[color=black fillcolor=deepskyblue style=filled shape=Msquare label="STOP"];
+    default_graph_subgraph_invoke_cb1 [label="subgraph_cb1.dag::default_graph" shape=box3d, color=blue fillcolor=aquamarine style=filled];
+    default_graph_subgraph_invoke_cb2 [label="subgraph_cb2.dag::default_graph" shape=box3d, color=blue fillcolor=aquamarine style=filled];
+    default_graph_subgraph_invoke_cb3 [label="subgraph_cb3.dag::default_graph" shape=box3d, color=blue fillcolor=aquamarine style=filled];
+    default_graph_subgraph_invoke_cb4 [label="subgraph_cb4.dag::default_graph" shape=box3d, color=blue fillcolor=aquamarine style=filled];
+    default_graph_recmd_merge [label="recmd_merge" color=black fillcolor=linen style=filled];
+    default_graph_with_exp_1000 [label="with_exp_1000" shape=diamond color=black fillcolor=aquamarine style=filled];
+    default_graph_with_exp_1001 [label="with_exp_1001" shape=diamond color=black fillcolor=aquamarine style=filled];
+    default_graph_recmd_merge -> default_graph__STOP__;
+    default_graph_subgraph_invoke_cb1 -> default_graph_recmd_merge [style=bold label="all"];
+    default_graph_subgraph_invoke_cb2 -> default_graph_recmd_merge [style=bold label="all"];
+    default_graph_subgraph_invoke_cb3 -> default_graph_recmd_merge [style=bold label="all"];
+    default_graph_subgraph_invoke_cb4 -> default_graph_recmd_merge [style=bold label="all"];
+    default_graph__START__ -> default_graph_subgraph_invoke_cb1;
+    default_graph__START__ -> default_graph_subgraph_invoke_cb2;
+    default_graph__START__ -> default_graph_subgraph_invoke_cb3;
+    default_graph__START__ -> default_graph_subgraph_invoke_cb4;
+};
+}

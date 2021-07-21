@@ -44,6 +44,7 @@ type Vertex struct {
 
 	Input  []GraphData `toml:"input"`
 	Output []GraphData `toml:"output"`
+	Start  bool        `toml:"start"`
 
 	successorVertex map[string]*Vertex
 	depsResults     map[string]int
@@ -71,15 +72,22 @@ func (p *Vertex) dumpDotDefine(s *strings.Builder) {
 func (p *Vertex) dumpDotEdge(s *strings.Builder) {
 	//log.Printf("Dump edge for %s/%s with deps:%d", p.g.Name, p.getDotLabel(), len(p.depsResults))
 	if len(p.ExpectConfig) > 0 {
+		expectConfigId := p.g.Name + "_" + p.ExpectConfig
+		expectConfigId = strings.ReplaceAll(expectConfigId, "!", "")
 		s.WriteString("    ")
-		s.WriteString(p.g.Name + "_" + p.ExpectConfig)
+		s.WriteString(expectConfigId)
 		s.WriteString(" -> ")
 		s.WriteString(p.getDotId())
-		s.WriteString(" [style=bold label=\"ok\"];\n")
+		if p.ExpectConfig[0] == '!' {
+			s.WriteString(" [style=dashed color=red label=\"err\"];\n")
+		} else {
+			s.WriteString(" [style=bold label=\"ok\"];\n")
+		}
+
 		s.WriteString("    ")
 		s.WriteString(p.g.Name + "__START__")
 		s.WriteString(" -> ")
-		s.WriteString(p.g.Name + "_" + p.ExpectConfig + ";\n")
+		s.WriteString(expectConfigId + ";\n")
 	}
 	if nil == p.successorVertex || len(p.successorVertex) == 0 {
 		s.WriteString("    " + p.getDotId() + " -> " + p.g.Name + "__STOP__;\n")
@@ -125,6 +133,20 @@ func (p *Vertex) isSuccessorsEmpty() bool {
 func (p *Vertex) isDepsEmpty() bool {
 	return nil == p.depsResults || len(p.depsResults) == 0
 }
+
+func (p *Vertex) verify() error {
+	if !p.Start {
+		if p.isDepsEmpty() && p.isSuccessorsEmpty() {
+			return fmt.Errorf("Vertex:%s/%s has no deps and successors", p.g.Name, p.getDotLabel())
+		}
+	} else {
+		if !p.isDepsEmpty() {
+			return fmt.Errorf("Vertex:%s/%s is start vertex, but has non empty deps.", p.g.Name, p.getDotLabel())
+		}
+	}
+	return nil
+}
+
 func (p *Vertex) getDotId() string {
 	return p.g.Name + "_" + p.ID
 }
@@ -476,9 +498,13 @@ func (p *Graph) build() error {
 		if len(v.Cond) > 0 {
 			continue
 		}
-		if v.isDepsEmpty() && v.isSuccessorsEmpty() {
-			return fmt.Errorf("Vertex:%s/%s has no deps and successors", v.g.Name, v.getDotLabel())
+		err := v.verify()
+		if nil != err {
+			return err
 		}
+		// if v.isDepsEmpty() && v.isSuccessorsEmpty() {
+		// 	return fmt.Errorf("Vertex:%s/%s has no deps and successors", v.g.Name, v.getDotLabel())
+		// }
 	}
 	if p.testCircle() {
 		return fmt.Errorf("Circle Exist")
@@ -502,9 +528,16 @@ type GraphCluster struct {
 
 func (p *GraphCluster) ContainsConfigSetting(name string) bool {
 	for _, c := range p.ConfigSetting {
-		if c.Name == name {
-			return true
+		if len(name) > 0 && name[0] == '!' {
+			if c.Name == name[1:] {
+				return true
+			}
+		} else {
+			if c.Name == name {
+				return true
+			}
 		}
+
 	}
 	return false
 }
