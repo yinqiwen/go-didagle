@@ -391,9 +391,33 @@ func (p *Graph) genCondVertex(cond string) *Vertex {
 	return v
 }
 
+func CheckCyclic(v *Vertex, visited map[string]bool, recursionStack map[string]bool) bool{
+	if !visited[v.ID] {
+		visited[v.ID] = true
+		recursionStack[v.ID] = true
+		for _, successor := range v.successorVertex {
+			if !visited[successor.ID] && CheckCyclic(successor, visited, recursionStack) {
+				return true
+			} else if recursionStack[successor.ID] {
+				return true
+			}
+		}
+	}
+	recursionStack[v.ID] = false
+	return false
+}
+
 func (p *Graph) testCircle() bool {
+	visited := make(map[string]bool, len(p.vertexMap))
+	recursionStack := make(map[string]bool, len(p.vertexMap))
+
 	for _, v := range p.vertexMap {
-		if v.findVertexInSuccessors(v) {
+		visited[v.ID] = false
+		recursionStack[v.ID] = false
+	}
+
+	for _, v := range p.vertexMap {
+		if CheckCyclic(v, visited, recursionStack) {
 			log.Printf("Graph:%s has a circle with vertex:%s", p.Name, v.ID)
 			return true
 		}
