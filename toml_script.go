@@ -403,8 +403,8 @@ func (p *Graph) genCondVertex(cond string) *Vertex {
 }
 
 func (p *Graph) testCircle() bool {
-	visited := make(map[string]bool)
 	for _, v := range p.vertexMap {
+		visited := make(map[string]bool)
 		if v.findVertexInSuccessors(v, visited) {
 			log.Printf("Graph:%s has a circle with vertex:%s", p.Name, v.ID)
 			return true
