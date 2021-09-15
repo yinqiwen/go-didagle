@@ -11,13 +11,15 @@ const V_RESULT_ERR int = 2
 const V_RESULT_ALL int = 3
 
 type GraphData struct {
-	ID        string   `toml:"id"`
-	Field     string   `toml:"field"`
-	Aggregate []string `toml:"aggregate"`
-	Cond      string   `toml:"cond"`
-	Required  bool     `toml:"required"`
-	Move      bool     `toml:"move"`
-	IsExtern  bool     `toml:"extern"`
+	ID         string   `toml:"id"`
+	Field      string   `toml:"field"`
+	Aggregate  []string `toml:"aggregate"`
+	Cond       string   `toml:"cond"`
+	Required   bool     `toml:"required"`
+	Move       bool     `toml:"move"`
+	IsExtern   bool     `toml:"extern"`
+	IsInOut    bool
+	IsMapInput bool
 }
 
 type CondParams struct {
@@ -112,15 +114,18 @@ func (p *Vertex) dumpDotEdge(s *strings.Builder) {
 	}
 }
 
-func (p *Vertex) findVertexInSuccessors(v *Vertex) bool {
+func (p *Vertex) findVertexInSuccessors(v *Vertex, visisted map[string]bool) bool {
 	if nil != p.successorVertex {
 		_, exist := p.successorVertex[v.ID]
 		if exist {
 			return true
 		}
+		visisted[v.ID] = true
 		for _, successor := range p.successorVertex {
-			if successor.findVertexInSuccessors(v) {
-				return true
+			if _, exist := visisted[successor.ID]; !exist {
+				if successor.findVertexInSuccessors(v, visisted) {
+					return true
+				}
 			}
 		}
 	}
@@ -187,8 +192,11 @@ func (p *Vertex) buildInputOutput() error {
 		}
 		if !match {
 			filed := GraphData{
-				ID:    opInput.Name,
-				Field: opInput.Name,
+				ID:         opInput.Name,
+				Field:      opInput.Name,
+				IsExtern:   opInput.Flags.Extern > 0,
+				IsInOut:    opInput.Flags.InOut > 0,
+				IsMapInput: opInput.Flags.Agrregate > 0,
 			}
 			p.Input = append(p.Input, filed)
 		}
@@ -253,12 +261,15 @@ func (p *Vertex) build() error {
 	}
 
 	for _, data := range p.Input {
-		if len(data.Aggregate) == 0 {
+		if len(data.Aggregate) == 0 && !data.IsMapInput {
 			dep := p.g.getVertexByData(data.ID)
 			if nil == dep && !data.IsExtern {
 				return fmt.Errorf("[%s/%s]No dep input id:%s", p.g.Name, p.getDotLabel(), data.ID)
 			}
 			if nil == dep {
+				continue
+			}
+			if data.IsInOut && dep == p {
 				continue
 			}
 			if data.Required {
@@ -483,7 +494,19 @@ func (p *Graph) build() error {
 				return err
 			}
 		}
-
+		//inOutFields := make(map[string]bool)
+		for idx := range v.Input {
+			data := &v.Input[idx]
+			if len(data.Field) == 0 {
+				return fmt.Errorf("Empty data field in intput for node:%s", v.ID)
+			}
+			if len(data.ID) == 0 {
+				data.ID = data.Field
+			}
+			// if data.IsInOut {
+			// 	inOutFields[data.ID] = true
+			// }
+		}
 		for idx := range v.Output {
 			data := &v.Output[idx]
 			if len(data.Field) == 0 {
@@ -497,19 +520,13 @@ func (p *Graph) build() error {
 					return fmt.Errorf("Duplicate data name:%s in vertex:%s/%s, prev vertex:%s", data.ID, v.g.Name, v.getDotLabel(), prev.getDotLabel())
 				}
 			}
-
+			//do NOT mapping out if this field is inout
+			// if _, exist := inOutFields[data.ID]; exist {
+			// 	continue
+			// }
 			p.dataMapping[data.ID] = v
 		}
 
-		for idx := range v.Input {
-			data := &v.Input[idx]
-			if len(data.Field) == 0 {
-				return fmt.Errorf("Empty data field in intput for node:%s", v.ID)
-			}
-			if len(data.ID) == 0 {
-				data.ID = data.Field
-			}
-		}
 	}
 
 	for _, v := range p.vertexMap {
