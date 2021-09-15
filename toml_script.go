@@ -115,12 +115,12 @@ func (p *Vertex) dumpDotEdge(s *strings.Builder) {
 }
 
 func (p *Vertex) findVertexInSuccessors(v *Vertex, visisted map[string]bool) bool {
+	visisted[p.ID] = true
 	if nil != p.successorVertex {
 		_, exist := p.successorVertex[v.ID]
 		if exist {
 			return true
 		}
-		visisted[v.ID] = true
 		for _, successor := range p.successorVertex {
 			if _, exist := visisted[successor.ID]; !exist {
 				if successor.findVertexInSuccessors(v, visisted) {
